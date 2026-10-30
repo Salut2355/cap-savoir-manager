@@ -169,3 +169,34 @@ footer {
   font-weight: bold;
   color: var(--navy);
 }
+
+.student-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.student-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 7px;
+  background: var(--navy);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.student-actions button:last-child {
+  background: var(--orange);
+}
+
+#student-list section {
+  margin: 24px 0;
+}
+
+#student-list section > h3 {
+  color: var(--navy);
+  margin: 18px 0 10px;
+}
