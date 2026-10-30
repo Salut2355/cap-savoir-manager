@@ -122,8 +122,12 @@ const StudentManager = {
         const card = document.createElement("article");
         card.className = "student-card";
 
-        const name = document.createElement("h3");
-        name.textContent = student.name;
+       const name = document.createElement("button");
+name.type = "button";
+name.className = "student-name-button";
+name.textContent = student.name;
+name.dataset.action = "view";
+name.dataset.id = student.id;
 
         const details = document.createElement("p");
         details.textContent =
@@ -178,7 +182,63 @@ const StudentManager = {
     createSection("Élèves actifs", active, false);
     createSection("Élèves archivés", archived, true);
   },
+showDetails(id) {
+  const student = this.getAll().find(item => item.id === id);
+  if (!student) return;
 
+  const oldDialog = document.getElementById("student-details-dialog");
+  if (oldDialog) oldDialog.remove();
+
+  const dialog = document.createElement("dialog");
+  dialog.id = "student-details-dialog";
+
+  const title = document.createElement("h2");
+  title.textContent = "Fiche individuelle";
+
+  const fields = [
+    ["Nom complet", student.name],
+    ["Niveau scolaire", student.level],
+    ["Groupe", student.group],
+    ["Date de début", student.startDate],
+    ["Parent / responsable", student.parent || "Non renseigné"],
+    ["Téléphone", student.phone || "Non renseigné"],
+    ["Statut", student.archived ? "Archivé" : "Actif"],
+    [
+      "Date de création",
+      student.createdAt
+        ? new Date(student.createdAt).toLocaleDateString("fr-FR")
+        : "Non renseignée"
+    ]
+  ];
+
+  dialog.appendChild(title);
+
+  fields.forEach(([label, value]) => {
+    const line = document.createElement("p");
+    line.textContent = `${label} : ${value}`;
+    dialog.appendChild(line);
+  });
+
+  const historyTitle = document.createElement("h3");
+  historyTitle.textContent = "Historique";
+  dialog.appendChild(historyTitle);
+
+  const historyMessage = document.createElement("p");
+  historyMessage.textContent =
+    "Les historiques de présence et de paiement seront ajoutés dans une prochaine version.";
+  dialog.appendChild(historyMessage);
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.textContent = "Fermer";
+  closeButton.addEventListener("click", () => dialog.close());
+
+  dialog.appendChild(closeButton);
+  document.body.appendChild(dialog);
+
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.showModal();
+},
   edit(id) {
     const student = this.getAll().find(item => item.id === id);
     if (!student || student.archived) return;
@@ -262,7 +322,9 @@ const StudentManager = {
       const student = this.getAll().find(item => item.id === id);
 
       if (!student) return;
-
+if (action === "view") {
+  this.showDetails(id);
+}
       if (action === "edit") {
         this.edit(id);
       }
@@ -292,3 +354,51 @@ const StudentManager = {
 document.addEventListener("DOMContentLoaded", () => {
   StudentManager.init();
 });
+.student-name-button {
+  display: block;
+  border: none;
+  background: transparent;
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: bold;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--orange);
+  margin-bottom: 8px;
+}
+
+#student-details-dialog {
+  width: min(90%, 500px);
+  max-height: 85vh;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+}
+
+#student-details-dialog::backdrop {
+  background: rgba(16, 29, 64, 0.65);
+}
+
+#student-details-dialog h2,
+#student-details-dialog h3 {
+  color: var(--navy);
+  margin-bottom: 14px;
+}
+
+#student-details-dialog p {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+
+#student-details-dialog button {
+  margin-top: 18px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--navy);
+  color: white;
+  cursor: pointer;
+}
