@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101D40">
+
+  <title>CAP SAVOIR MANAGER</title>
+
+  <meta
+    name="description"
+    content="Application de gestion du centre CAP SAVOIR."
+  >
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <h1>CAP SAVOIR</h1>
+    <p>MANAGER</p>
+  </header>
+
+  <main id="app">
+    <section class="welcome">
+      <h2>Bienvenue sur CAP SAVOIR MANAGER</h2>
+      <p>La gestion de votre centre, simplement.</p>
+    </section>
+
+    <section class="dashboard">
+      <h2>Tableau de bord</h2>
+      <p>Votre espace de gestion sera bientôt disponible.</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>CAP SAVOIR MANAGER — Version 1.0</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
