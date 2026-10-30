@@ -1,0 +1,13 @@
+
+{
+  "name": "CAP SAVOIR MANAGER",
+  "short_name": "CAP SAVOIR",
+  "description": "Gestion du centre éducatif CAP SAVOIR",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F5F6FA",
+  "theme_color": "#101D40"
+}
