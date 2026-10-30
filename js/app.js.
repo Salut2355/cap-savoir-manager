@@ -2,8 +2,6 @@
 "use strict";
 
 // CAP SAVOIR MANAGER
-// Point de démarrage de l'application.
-
 const App = {
   name: "CAP SAVOIR MANAGER",
   version: "1.0.0",
@@ -11,16 +9,8 @@ const App = {
   init() {
     console.log(`${this.name} — Version ${this.version}`);
 
-    this.showWelcomeMessage();
     this.updateFooter();
-  },
-
-  showWelcomeMessage() {
-    const welcome = document.querySelector(".welcome");
-
-    if (welcome) {
-      console.log("Application initialisée avec succès.");
-    }
+    this.registerServiceWorker();
   },
 
   updateFooter() {
@@ -30,10 +20,32 @@ const App = {
       footer.textContent =
         `${this.name} — Version ${this.version}`;
     }
+  },
+
+  async registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      console.warn("Service worker non pris en charge.");
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register(
+        "./service-worker.js"
+      );
+
+      console.log(
+        "Service worker enregistré :",
+        registration.scope
+      );
+    } catch (error) {
+      console.error(
+        "Erreur d'enregistrement du service worker :",
+        error
+      );
+    }
   }
 };
 
-// Lancement de l'application
 document.addEventListener("DOMContentLoaded", () => {
   App.init();
 });
