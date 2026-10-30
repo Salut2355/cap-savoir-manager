@@ -1,0 +1,39 @@
+
+"use strict";
+
+// CAP SAVOIR MANAGER
+// Point de démarrage de l'application.
+
+const App = {
+  name: "CAP SAVOIR MANAGER",
+  version: "1.0.0",
+
+  init() {
+    console.log(`${this.name} — Version ${this.version}`);
+
+    this.showWelcomeMessage();
+    this.updateFooter();
+  },
+
+  showWelcomeMessage() {
+    const welcome = document.querySelector(".welcome");
+
+    if (welcome) {
+      console.log("Application initialisée avec succès.");
+    }
+  },
+
+  updateFooter() {
+    const footer = document.querySelector("footer p");
+
+    if (footer) {
+      footer.textContent =
+        `${this.name} — Version ${this.version}`;
+    }
+  }
+};
+
+// Lancement de l'application
+document.addEventListener("DOMContentLoaded", () => {
+  App.init();
+});
