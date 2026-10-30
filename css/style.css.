@@ -1,0 +1,171 @@
+
+:root {
+  --navy: #101D40;
+  --orange: #FF781F;
+  --green: #20A45A;
+  --background: #F5F6FA;
+  --white: #FFFFFF;
+  --text: #20283A;
+  --muted: #6B7280;
+  --border: #E5E7EB;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.app-header {
+  background: var(--navy);
+  color: var(--white);
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.app-header h1 {
+  font-size: 25px;
+  letter-spacing: 1px;
+}
+
+.app-header p {
+  color: var(--orange);
+  font-weight: bold;
+  letter-spacing: 4px;
+}
+
+main {
+  width: min(100% - 32px, 1000px);
+  margin: 30px auto;
+}
+
+.welcome,
+.dashboard {
+  background: var(--white);
+  padding: 24px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+
+.welcome {
+  border-left: 5px solid var(--orange);
+}
+
+h2 {
+  color: var(--navy);
+  margin-bottom: 10px;
+}
+
+.dashboard {
+  min-height: 150px;
+}
+
+footer {
+  text-align: center;
+  padding: 25px 15px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 600px) {
+  main {
+    margin: 18px auto;
+  }
+
+  .welcome,
+  .dashboard {
+    padding: 18px;
+  }
+
+  .app-header h1 {
+    font-size: 21px;
+  }
+}
+
+/* Formulaire de gestion des élèves */
+
+#student-form {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0 30px;
+}
+
+#student-form label {
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+#student-form input,
+#student-form select {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 16px;
+}
+
+#student-form input:focus,
+#student-form select:focus {
+  outline: 2px solid var(--orange);
+  border-color: var(--orange);
+}
+
+#student-form button {
+  min-height: 48px;
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#student-form button:active {
+  background: var(--orange);
+}
+
+#student-message {
+  margin: 12px 0;
+  color: var(--green);
+  font-weight: bold;
+}
+
+.student-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--orange);
+  border-radius: 10px;
+  padding: 16px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+.student-card h3 {
+  color: var(--navy);
+  margin-bottom: 8px;
+}
+
+.student-card p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+#student-count {
+  margin: 12px 0;
+  font-weight: bold;
+  color: var(--navy);
+}
