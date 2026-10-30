@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101D40">
+  <meta name="description" content="Gestion du centre éducatif CAP SAVOIR">
+
+  <title>CAP SAVOIR MANAGER</title>
+
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+  <header class="app-header">
+    <h1>CAP SAVOIR</h1>
+    <p>MANAGER</p>
+  </header>
+
+  <main id="app">
+    <section class="welcome">
+      <h2>Tableau de bord</h2>
+      <p>Bienvenue dans votre espace de gestion.</p>
+    </section>
+
+    <section class="dashboard">
+      <h2>Gestion des élèves</h2>
+
+      <form id="student-form">
+        <label for="student-name">Nom complet de l'élève</label>
+        <input id="student-name" name="name" required maxlength="100">
+
+        <label for="student-level">Niveau scolaire</label>
+        <select id="student-level" name="level" required>
+          <option value="">Choisir un niveau</option>
+          <option>CP1</option>
+          <option>CP2</option>
+          <option>CE1</option>
+          <option>CE2</option>
+          <option>CM1</option>
+          <option>CM2</option>
+          <option>6e</option>
+          <option>5e</option>
+          <option>4e</option>
+        </select>
+
+        <label for="parent-name">Nom du parent / responsable</label>
+        <input id="parent-name" name="parent" maxlength="100">
+
+        <label for="parent-phone">Téléphone du responsable</label>
+        <input id="parent-phone" name="phone" type="tel" maxlength="25">
+
+        <label for="student-group">Groupe</label>
+        <select id="student-group" name="group" required>
+          <option value="">Choisir un groupe</option>
+          <option value="Groupe 1">Groupe 1</option>
+          <option value="Groupe 2">Groupe 2</option>
+        </select>
+
+        <label for="start-date">Date de début</label>
+        <input id="start-date" name="startDate" type="date" required>
+
+        <button type="submit">Enregistrer l'élève</button>
+      </form>
+
+      <div id="student-message" role="status"></div>
+
+      <h2>Liste des élèves</h2>
+      <p id="student-count">0 élève enregistré</p>
+
+      <div id="student-list">
+        <p>Aucun élève enregistré pour le moment.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>CAP SAVOIR MANAGER — Version 1.0</p>
+  </footer>
+
+  <script src="./js/students.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
