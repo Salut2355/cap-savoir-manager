@@ -264,11 +264,152 @@ showDetails(id) {
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   },
 
+  exportBackup() {
+    const backup = {
+      application: "CAP SAVOIR MANAGER",
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      students: this.getAll()
+    };
+
+    const content = JSON.stringify(backup, null, 2);
+    this.downloadFile(
+      content,
+      `cap-savoir-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
+      "application/json"
+    );
+  },
+
+  exportCSV() {
+    const students = this.getAll();
+
+    const columns = [
+      "Nom complet",
+      "Niveau",
+      "Parent",
+      "Téléphone",
+      "Groupe",
+      "Date de début",
+      "Statut",
+      "Date de création"
+    ];
+
+    const escapeCSV = value =>
+      `"${String(value ?? "").replace(/"/g, '""')}"`;
+
+    const rows = students.map(student => [
+      student.name,
+      student.level,
+      student.parent,
+      student.phone,
+      student.group,
+      student.startDate,
+      student.archived ? "Archivé" : "Actif",
+      student.createdAt || ""
+    ]);
+
+    const csv = [
+      columns,
+      ...rows
+    ].map(row => row.map(escapeCSV).join(";")).join("\r\n");
+
+    this.downloadFile(
+      "\uFEFF" + csv,
+      `cap-savoir-eleves-${new Date().toISOString().slice(0, 10)}.csv`,
+      "text/csv;charset=utf-8"
+    );
+  },
+
+  downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  async restoreBackup(file) {
+    try {
+      const content = await file.text();
+      const backup = JSON.parse(content);
+
+      if (
+        backup.application !== "CAP SAVOIR MANAGER" ||
+        !Array.isArray(backup.students)
+      ) {
+        throw new Error("Format de sauvegarde invalide.");
+      }
+
+      const valid = backup.students.every(student =>
+        student &&
+        typeof student.id === "string" &&
+        typeof student.name === "string" &&
+        typeof student.level === "string" &&
+        typeof student.parent === "string" &&
+        typeof student.phone === "string" &&
+        typeof student.group === "string" &&
+        typeof student.startDate === "string" &&
+        typeof student.archived === "boolean"
+      );
+
+      const ids = backup.students.map(student => student.id);
+
+      if (!valid || new Set(ids).size !== ids.length) {
+        throw new Error("Les données de la sauvegarde sont invalides.");
+      }
+
+      const confirmed = confirm(
+        `Cette sauvegarde contient ${backup.students.length} fiche(s).\n\n` +
+        "La restauration remplacera toutes les fiches actuellement présentes sur cet appareil.\n\n" +
+        "Avez-vous déjà téléchargé une sauvegarde de vos données actuelles ?"
+      );
+
+      if (!confirmed) return;
+
+      this.saveAll(backup.students);
+      this.resetForm();
+      this.render();
+
+      document.getElementById("student-message").textContent =
+        "Sauvegarde restaurée avec succès.";
+    } catch (error) {
+      console.error("Erreur de restauration :", error);
+      document.getElementById("student-message").textContent =
+        "Restauration impossible : fichier invalide ou illisible.";
+    }
+  },
+
   init() {
     const form = document.getElementById("student-form");
     const message = document.getElementById("student-message");
     const list = document.getElementById("student-list");
+const exportButton = document.getElementById("export-backup");
+const csvButton = document.getElementById("export-csv");
+const restoreInput = document.getElementById("restore-backup");
 
+exportButton?.addEventListener("click", () => {
+  this.exportBackup();
+});
+
+csvButton?.addEventListener("click", () => {
+  this.exportCSV();
+});
+
+restoreInput?.addEventListener("change", async () => {
+  const file = restoreInput.files[0];
+
+  if (file) {
+    await this.restoreBackup(file);
+  }
+
+  restoreInput.value = "";
+});
     if (!form || !list) return;
 
     this.render();
