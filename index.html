@@ -66,7 +66,24 @@
       </form>
 
       <div id="student-message" role="status"></div>
+<section class="backup-section">
+  <h2>Sauvegarde et exportation</h2>
 
+  <button type="button" id="export-backup">
+    Télécharger une sauvegarde complète
+  </button>
+
+  <button type="button" id="export-csv">
+    Exporter la liste Excel (CSV)
+  </button>
+
+  <label for="restore-backup">Restaurer une sauvegarde JSON</label>
+  <input
+    type="file"
+    id="restore-backup"
+    accept=".json,application/json"
+  >
+</section>
       <h2>Liste des élèves</h2>
       <p id="student-count">0 élève enregistré</p>
 
