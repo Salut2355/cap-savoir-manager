@@ -264,7 +264,7 @@ showDetails(id) {
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   },
 
-  exportBackup() {
+exportBackup() {
   const backup = {
     application: "CAP SAVOIR MANAGER",
     version: 2,
