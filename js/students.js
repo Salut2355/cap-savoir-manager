@@ -283,6 +283,14 @@ exportBackup() {
   );
 },
 
+  const content = JSON.stringify(backup, null, 2);
+
+  this.downloadFile(
+    content,
+    `cap-savoir-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
+    "application/json"
+  );
+},
 
   exportCSV() {
     const students = this.getAll();
