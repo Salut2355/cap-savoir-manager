@@ -338,56 +338,113 @@ exportBackup() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
-  async restoreBackup(file) {
-    try {
-      const content = await file.text();
-      const backup = JSON.parse(content);
+ 
+async restoreBackup(file) {
+  try {
+    const content = await file.text();
+    const backup = JSON.parse(content);
+
+    if (
+      backup.application !== "CAP SAVOIR MANAGER" ||
+      !Array.isArray(backup.students)
+    ) {
+      throw new Error("Format de sauvegarde invalide.");
+    }
+
+    // Vérifier les fiches élèves
+    const validStudents = backup.students.every(student =>
+      student &&
+      typeof student.id === "string" &&
+      typeof student.name === "string" &&
+      typeof student.level === "string" &&
+      typeof student.parent === "string" &&
+      typeof student.phone === "string" &&
+      typeof student.group === "string" &&
+      typeof student.startDate === "string" &&
+      typeof student.archived === "boolean"
+    );
+
+    const studentIds = backup.students.map(student => student.id);
+
+    if (
+      !validStudents ||
+      new Set(studentIds).size !== studentIds.length
+    ) {
+      throw new Error("Les données des élèves sont invalides.");
+    }
+
+    // Vérifier les présences si elles existent dans la sauvegarde
+    const hasAttendance = Array.isArray(backup.attendance);
+
+    if (backup.attendance !== undefined && !hasAttendance) {
+      throw new Error("L'historique des présences est invalide.");
+    }
+
+    if (hasAttendance) {
+      const validAttendance = backup.attendance.every(record =>
+        record &&
+        typeof record.id === "string" &&
+        typeof record.date === "string" &&
+        typeof record.group === "string" &&
+        Array.isArray(record.entries) &&
+        record.entries.every(entry =>
+          entry &&
+          typeof entry.studentId === "string" &&
+          typeof entry.studentName === "string" &&
+          typeof entry.status === "string" &&
+          typeof entry.reason === "string"
+        )
+      );
+
+      const attendanceIds = backup.attendance.map(record => record.id);
 
       if (
-        backup.application !== "CAP SAVOIR MANAGER" ||
-        !Array.isArray(backup.students)
+        !validAttendance ||
+        new Set(attendanceIds).size !== attendanceIds.length
       ) {
-        throw new Error("Format de sauvegarde invalide.");
+        throw new Error("Les données des présences sont invalides.");
       }
-
-      const valid = backup.students.every(student =>
-        student &&
-        typeof student.id === "string" &&
-        typeof student.name === "string" &&
-        typeof student.level === "string" &&
-        typeof student.parent === "string" &&
-        typeof student.phone === "string" &&
-        typeof student.group === "string" &&
-        typeof student.startDate === "string" &&
-        typeof student.archived === "boolean"
-      );
-
-      const ids = backup.students.map(student => student.id);
-
-      if (!valid || new Set(ids).size !== ids.length) {
-        throw new Error("Les données de la sauvegarde sont invalides.");
-      }
-
-      const confirmed = confirm(
-        `Cette sauvegarde contient ${backup.students.length} fiche(s).\n\n` +
-        "La restauration remplacera toutes les fiches actuellement présentes sur cet appareil.\n\n" +
-        "Avez-vous déjà téléchargé une sauvegarde de vos données actuelles ?"
-      );
-
-      if (!confirmed) return;
-
-      this.saveAll(backup.students);
-      this.resetForm();
-      this.render();
-
-      document.getElementById("student-message").textContent =
-        "Sauvegarde restaurée avec succès.";
-    } catch (error) {
-      console.error("Erreur de restauration :", error);
-      document.getElementById("student-message").textContent =
-        "Restauration impossible : fichier invalide ou illisible.";
     }
-  },
+
+    const confirmed = confirm(
+      `Cette sauvegarde contient ${backup.students.length} fiche(s) élève(s).\n` +
+      `${hasAttendance ? backup.attendance.length + " séance(s) de présence" : "Aucun historique de présence dans ce fichier"}.\n\n` +
+      "La restauration remplacera les fiches élèves actuelles.\n" +
+      (hasAttendance
+        ? "Elle remplacera également l'historique des présences actuel.\n\n"
+        : "L'historique des présences déjà présent sur cet appareil sera conservé.\n\n") +
+      "Avez-vous déjà téléchargé une sauvegarde de vos données actuelles ?"
+    );
+
+    if (!confirmed) return;
+
+    // Restaurer les élèves
+    this.saveAll(backup.students);
+
+    // Restaurer les présences uniquement si elles sont présentes
+    if (hasAttendance) {
+      AttendanceManager.saveAll(backup.attendance);
+    }
+
+    this.resetForm();
+    this.render();
+
+    if (hasAttendance) {
+      AttendanceManager.renderHistory();
+    }
+
+    document.getElementById("student-message").textContent =
+      hasAttendance
+        ? "Élèves et historique des présences restaurés avec succès."
+        : "Élèves restaurés. L'historique des présences existant a été conservé.";
+
+  } catch (error) {
+    console.error("Erreur de restauration :", error);
+
+    document.getElementById("student-message").textContent =
+      "Restauration impossible : fichier invalide ou illisible.";
+  }
+},
 
   init() {
     const form = document.getElementById("student-form");
