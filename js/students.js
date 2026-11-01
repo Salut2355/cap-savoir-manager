@@ -265,33 +265,23 @@ showDetails(id) {
   },
 
 
-exportBackup() {
-  const backup = {
-    application: "CAP SAVOIR MANAGER",
-    version: 2,
-    exportedAt: new Date().toISOString(),
-    students: this.getAll(),
-    attendance: AttendanceManager.getAll()
-  };
+  exportBackup() {
+    const backup = {
+      application: "CAP SAVOIR MANAGER",
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      students: this.getAll(),
+      attendance: AttendanceManager.getAll()
+    };
 
-  const content = JSON.stringify(backup, null, 2);
+    const content = JSON.stringify(backup, null, 2);
 
-  this.downloadFile(
-    content,
-    `cap-savoir-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
-    "application/json"
-  );
-},
-
-  const content = JSON.stringify(backup, null, 2);
-
-  this.downloadFile(
-    content,
-    `cap-savoir-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
-    "application/json"
-  );
-},
-
+    this.downloadFile(
+      content,
+      `cap-savoir-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`,
+      "application/json"
+    );
+  },
   exportCSV() {
     const students = this.getAll();
 
