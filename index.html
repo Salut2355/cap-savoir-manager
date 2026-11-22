@@ -1,107 +1,143 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101D40">
   <meta name="description" content="Gestion du centre éducatif CAP SAVOIR">
-
   <title>CAP SAVOIR MANAGER</title>
-
+  <link rel="icon" href="./favicon.ico" sizes="any">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./css/style.css">
 </head>
-
 <body>
-  <header class="app-header">
-    <h1>CAP SAVOIR</h1>
-    <p>MANAGER</p>
-  </header>
+  <a class="skip-link" href="#app">Aller au contenu</a>
+  <div class="app-shell">
+    <aside class="sidebar" id="app-sidebar" aria-label="Navigation de l'application">
+      <a class="brand" href="#dashboard" data-view="dashboard" aria-label="CAP SAVOIR MANAGER, accueil">
+        <span class="brand-name">CAP SAVOIR</span>
+        <span class="brand-product">MANAGER</span>
+      </a>
+      <p class="nav-caption">ESPACE DE GESTION</p>
+      <nav class="app-nav desktop-nav" aria-label="Navigation principale">
+        <button type="button" data-view="dashboard" aria-current="page"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7"/></svg></span><span>Accueil</span></button>
+        <button type="button" data-view="students"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20c.5-3.5 2.6-5.3 6.2-5.3s5.7 1.8 6.2 5.3M16 5.2a3.5 3.5 0 0 1 0 6.6M17 14.8c2.4.4 3.8 2.1 4.2 5.2"/></svg></span><span>Élèves</span></button>
+        <button type="button" data-view="groups"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></span><span>Groupes</span></button>
+        <button type="button" data-view="attendance"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg></span><span>Présences</span></button>
+        <button type="button" data-view="operations"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M7 15h3"/></svg></span><span>Finances</span></button>
+      </nav>
+      <div class="sidebar-footer"><span class="local-indicator" aria-hidden="true"></span><span>Stockage local</span></div>
+    </aside>
 
-  <main id="app">
-    <section class="welcome">
-      <h2>Tableau de bord</h2>
-      <p>Bienvenue dans votre espace de gestion.</p>
-    </section>
+    <div class="app-main-area">
+      <header class="mobile-header">
+        <a class="mobile-brand" href="#dashboard" data-view="dashboard"><span>CAP SAVOIR</span><small>MANAGER</small></a>
+        <button class="mobile-quick-action" type="button" data-view="operations" data-open="payment-form" aria-label="Enregistrer un paiement">＋ Paiement</button>
+      </header>
 
-    <section class="dashboard">
-      <h2>Gestion des élèves</h2>
+      <header class="page-topbar">
+        <div class="page-topbar-copy">
+          <p class="eyebrow">CAP SAVOIR · Yopougon Siporex</p>
+          <h1 id="view-title">Tableau de bord</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="button button-secondary" type="button" data-view="students" data-action="focus-student-form">＋ Nouvel élève</button>
+          <button class="button button-primary" type="button" data-view="operations" data-open="payment-form">＋ Paiement</button>
+        </div>
+      </header>
 
-      <form id="student-form">
-        <label for="student-name">Nom complet de l'élève</label>
-        <input id="student-name" name="name" required maxlength="100">
+      <main id="app" tabindex="-1">
+        <section class="page-view dashboard-view app-panel" data-app-panel="dashboard">
+          <div class="welcome-block">
+            <div><p class="eyebrow">VUE D’ENSEMBLE</p><h2>Bonjour, bienvenue dans votre espace.</h2><p>Suivez les activités du centre et accédez rapidement aux tâches du jour.</p></div>
+            <div class="welcome-actions">
+              <button class="button button-primary" type="button" data-view="attendance">Faire l’appel</button>
+              <button class="button button-secondary" type="button" data-view="operations" data-open="expense-form">Ajouter une dépense</button>
+            </div>
+          </div>
+          <p id="dashboard-message" class="inline-message" role="status" aria-live="polite"></p>
+          <div id="dashboard-metrics" class="metrics-grid" aria-label="Indicateurs du centre"></div>
+          <div class="dashboard-columns">
+            <section class="surface dashboard-card">
+              <div class="section-heading"><div><p class="eyebrow">RÉPARTITION</p><h2>Groupes</h2></div><button class="text-action" type="button" data-view="groups">Voir les groupes</button></div>
+              <div id="dashboard-groups" class="dashboard-group-list"></div>
+            </section>
+            <section class="surface dashboard-card">
+              <div class="section-heading"><div><p class="eyebrow">À SUIVRE</p><h2>Échéances proches</h2></div><button class="text-action" type="button" data-view="operations">Ouvrir les finances</button></div>
+              <div id="dashboard-reminders" class="dashboard-list"></div>
+            </section>
+          </div>
+          <section class="surface dashboard-card recent-card">
+            <div class="section-heading"><div><p class="eyebrow">DERNIERS MOUVEMENTS</p><h2>Activité récente</h2></div><button class="text-action" type="button" data-view="operations">Tout l’historique</button></div>
+            <div id="dashboard-recent" class="dashboard-list"></div>
+          </section>
+        </section>
 
-        <label for="student-level">Niveau scolaire</label>
-        <select id="student-level" name="level" required>
-          <option value="">Choisir un niveau</option>
-          <option>CP1</option>
-          <option>CP2</option>
-          <option>CE1</option>
-          <option>CE2</option>
-          <option>CM1</option>
-          <option>CM2</option>
-          <option>6e</option>
-          <option>5e</option>
-          <option>4e</option>
-        </select>
+        <section class="page-view students-view app-panel" data-app-panel="students" hidden>
+          <div class="view-intro"><div><p class="eyebrow">DOSSIERS SCOLAIRES</p><h2>Élèves</h2><p>Recherchez une fiche, consultez son parcours ou gérez son statut.</p></div><button class="button button-primary" type="button" data-action="focus-student-form">＋ Ajouter un élève</button></div>
+          <p id="student-message" class="inline-message" role="status" aria-live="polite"></p>
 
-        <label for="parent-name">Nom du parent / responsable</label>
-        <input id="parent-name" name="parent" maxlength="100">
+          <details class="surface form-disclosure" id="student-form-panel">
+            <summary><span><strong>Ajouter ou modifier une fiche</strong><small>Informations scolaires et administratives</small></span><span class="disclosure-plus" aria-hidden="true">＋</span></summary>
+            <form id="student-form" class="form-grid">
+              <label class="field"><span>Nom complet de l’élève</span><input id="student-name" name="name" autocomplete="name" required maxlength="100"></label>
+              <label class="field"><span>Niveau scolaire</span><select id="student-level" name="level" required><option value="">Choisir un niveau</option><option>CP1</option><option>CP2</option><option>CE1</option><option>CE2</option><option>CM1</option><option>CM2</option><option>6e</option><option>5e</option><option>4e</option></select></label>
+              <label class="field"><span>Parent ou responsable</span><input id="parent-name" name="parent" autocomplete="name" maxlength="100"></label>
+              <label class="field"><span>Téléphone du responsable</span><input id="parent-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="25"></label>
+              <label class="field"><span>Groupe</span><select id="student-group" name="group" required><option value="">Choisir un groupe</option><option value="G1">G1 · dimanche, mardi, jeudi · 19 h–21 h</option><option value="G2">G2 · lundi, mercredi, vendredi · 19 h–21 h 30</option><option value="Groupe 1">G1 · ancien libellé</option><option value="Groupe 2">G2 · ancien libellé</option></select></label>
+              <label class="field"><span>Date de début</span><input id="start-date" name="startDate" type="date" required></label>
+              <label class="checkbox-field field-wide" for="registration-exempted"><input id="registration-exempted" name="registrationExempted" type="checkbox"><span>Exonérer les frais d’inscription (2 000 FCFA)</span></label>
+              <div class="form-actions field-wide"><button class="button button-primary" type="submit">Enregistrer la fiche</button><button class="button button-quiet" type="reset">Effacer</button></div>
+            </form>
+          </details>
 
-        <label for="parent-phone">Téléphone du responsable</label>
-        <input id="parent-phone" name="phone" type="tel" maxlength="25">
+          <section class="surface list-surface">
+            <div class="section-heading list-heading"><div><p class="eyebrow">ANNUAIRE</p><h2>Liste des élèves</h2><p id="student-count" class="muted-copy">Chargement…</p></div></div>
+            <div class="filter-bar" aria-label="Rechercher et filtrer les élèves">
+              <label class="field search-field"><span>Rechercher</span><input id="student-search" type="search" placeholder="Nom, responsable, téléphone" autocomplete="off"></label>
+              <label class="field"><span>Niveau</span><select id="student-filter-level"><option value="">Tous les niveaux</option><option>CP1</option><option>CP2</option><option>CE1</option><option>CE2</option><option>CM1</option><option>CM2</option><option>6e</option><option>5e</option><option>4e</option></select></label>
+              <label class="field"><span>Groupe</span><select id="student-filter-group"><option value="">Tous les groupes</option><option value="G1">G1</option><option value="G2">G2</option><option value="Groupe 1">Groupe 1 (ancien)</option><option value="Groupe 2">Groupe 2 (ancien)</option></select></label>
+              <label class="field"><span>Statut</span><select id="student-filter-status"><option value="active">Élèves actifs</option><option value="archived">Élèves archivés</option><option value="all">Tous</option></select></label>
+            </div>
+            <div id="student-list" class="student-list"><p class="empty-state">Aucun élève enregistré pour le moment.</p></div>
+          </section>
 
-        <label for="student-group">Groupe</label>
-        <select id="student-group" name="group" required>
-          <option value="">Choisir un groupe</option>
-          <option value="Groupe 1">Groupe 1</option>
-          <option value="Groupe 2">Groupe 2</option>
-        </select>
+          <details class="surface backup-section">
+            <summary><span><strong>Sauvegardes et restauration</strong><small>Exporter les données ou restaurer une sauvegarde vérifiée</small></span><span class="disclosure-plus" aria-hidden="true">＋</span></summary>
+            <div class="backup-content">
+              <div class="notice notice-warning"><strong>Avant une restauration</strong><p>Une sauvegarde complète préalable sera préparée, téléchargée et vérifiée avant le remplacement. Conservez le fichier téléchargé en lieu sûr. La restauration remplace élèves, présences et opérations locales après confirmation.</p></div>
+              <div class="backup-actions"><button type="button" class="button button-secondary" id="export-backup">Télécharger une sauvegarde complète</button><button type="button" class="button button-quiet" id="export-csv">Exporter les élèves en CSV</button></div>
+              <label class="field restore-field" for="restore-backup"><span>Fichier de restauration JSON</span><input type="file" id="restore-backup" accept=".json,application/json"></label>
+              <p class="muted-copy">Aucun historique de fichiers sauvegardés n’est conservé automatiquement dans cette version.</p>
+            </div>
+          </details>
+        </section>
 
-        <label for="start-date">Date de début</label>
-        <input id="start-date" name="startDate" type="date" required>
+        <section class="page-view groups-view app-panel" data-app-panel="groups" hidden>
+          <div class="view-intro"><div><p class="eyebrow">ORGANISATION DES COURS</p><h2>Groupes et formations</h2><p>Consultez les horaires et les élèves associés à chaque groupe.</p></div></div>
+          <div id="groups-overview" class="groups-grid"></div>
+        </section>
 
-        <button type="submit">Enregistrer l'élève</button>
-      </form>
+        <section class="page-view attendance-section app-panel" id="attendance-section" data-app-panel="attendance" hidden></section>
+        <section class="page-view operations-section app-panel" id="operations-section" data-app-panel="operations" hidden></section>
+      </main>
+      <footer class="app-footer"><p>CAP SAVOIR MANAGER · Version 1.0.0</p><span>Gestion locale du centre</span></footer>
+    </div>
+  </div>
 
-      <div id="student-message" role="status"></div>
-<section class="backup-section">
-  <h2>Sauvegarde et exportation</h2>
+  <nav class="mobile-nav" aria-label="Navigation principale">
+    <button type="button" data-view="dashboard" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7"/></svg><small>Accueil</small></button>
+    <button type="button" data-view="students"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.8 20c.5-3.5 2.6-5.3 6.2-5.3s5.7 1.8 6.2 5.3M16 5.2a3.5 3.5 0 0 1 0 6.6M17 14.8c2.4.4 3.8 2.1 4.2 5.2"/></svg><small>Élèves</small></button>
+    <button type="button" data-view="groups"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg><small>Groupes</small></button>
+    <button type="button" data-view="attendance"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg><small>Appel</small></button>
+    <button type="button" data-view="operations"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M7 15h3"/></svg><small>Finances</small></button>
+  </nav>
 
-  <button type="button" id="export-backup">
-    Télécharger une sauvegarde complète
-  </button>
-
-  <button type="button" id="export-csv">
-    Exporter la liste Excel (CSV)
-  </button>
-
-  <label for="restore-backup">Restaurer une sauvegarde JSON</label>
-  <input
-    type="file"
-    id="restore-backup"
-    accept=".json,application/json"
-  >
-</section>
-      <h2>Liste des élèves</h2>
-      <p id="student-count">0 élève enregistré</p>
-
-      <div id="student-list">
-        <p>Aucun élève enregistré pour le moment.</p>
-      </div>
-    </section>
-      </section>
-
-    <section class="attendance-section" id="attendance-section"></section>
-  </main>
-
-  <footer>
-    <p>CAP SAVOIR MANAGER — Version 1.0</p>
-  </footer>
-
+  <script src="./js/storage-recovery.js"></script>
   <script src="./js/students.js"></script>
-<script src="./js/attendance.js"></script>
-<script src="./js/app.js"></script>
+  <script src="./js/attendance.js"></script>
+  <script src="./js/operations.js"></script>
+  <script src="./js/app.js"></script>
 </body>
 </html>

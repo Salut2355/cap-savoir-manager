@@ -2,26 +2,139 @@
 "use strict";
 
 // Gestion des fiches élèves de CAP SAVOIR
-const StudentManager = {
-  storageKey: "cap-savoir-students-v1",
+const StudentManager = (() => {
+  const storageKey = "cap-savoir-students-v1";
+
+  function readRaw() {
+    if (typeof DataRestoreRecovery !== "undefined") DataRestoreRecovery.assertReadable();
+    try {
+      return localStorage.getItem(storageKey);
+    } catch (cause) {
+      const error = new Error("Stockage des élèves inaccessible.");
+      error.code = "STORAGE_ACCESS";
+      error.cause = cause;
+      throw error;
+    }
+  }
+
+  function readStored() {
+    const raw = readRaw();
+    if (raw === null) return { records: [], raw: null };
+
+    if (raw.trim() === "") {
+      const error = new Error("Les données des élèves sont vides et invalides.");
+      error.code = "STORAGE_EMPTY";
+      throw error;
+    }
+
+    let records;
+    try {
+      records = JSON.parse(raw);
+    } catch (cause) {
+      const error = new Error("Les données des élèves contiennent un JSON invalide.");
+      error.code = "STORAGE_INVALID_JSON";
+      error.cause = cause;
+      throw error;
+    }
+
+    if (!Array.isArray(records)) {
+      const error = new Error("Les données des élèves ne sont pas une liste JSON.");
+      error.code = "STORAGE_INVALID_ROOT";
+      throw error;
+    }
+
+    return { records, raw };
+  }
+
+
+  function commit(records, expectedRaw) {
+    const write = () => {
+      if (!Array.isArray(records)) {
+        throw new TypeError("Les données des élèves doivent être une liste.");
+      }
+
+      if (readRaw() !== expectedRaw) {
+        const error = new Error(
+          "Les données des élèves ont changé depuis leur lecture. Écriture annulée."
+        );
+        error.code = "STORAGE_CHANGED";
+        throw error;
+      }
+
+      let serialized;
+      try {
+        serialized = JSON.stringify(records);
+      } catch (cause) {
+        const error = new Error("Impossible de préparer l'enregistrement des élèves.");
+        error.code = "STORAGE_SERIALIZATION";
+        error.cause = cause;
+        throw error;
+      }
+
+      try {
+        localStorage.setItem(storageKey, serialized);
+      } catch (cause) {
+        const error = new Error("Impossible d'enregistrer les élèves. L'écriture a échoué.");
+        error.code = "STORAGE_WRITE";
+        error.cause = cause;
+        throw error;
+      }
+
+      let written;
+      try {
+        written = readRaw();
+      } catch (cause) {
+        const error = new Error(
+          "Écriture effectuée, mais vérification impossible. L'état des données est incertain."
+        );
+        error.code = "STORAGE_WRITE_UNCERTAIN";
+        error.cause = cause;
+        throw error;
+      }
+
+      if (written !== serialized) {
+        const error = new Error(
+          "Écriture effectuée, mais la vérification a échoué. L'état des données est incertain."
+        );
+        error.code = "STORAGE_WRITE_UNCERTAIN";
+        throw error;
+      }
+    };
+
+    if (typeof navigator !== "undefined" && navigator.locks?.request) {
+      return navigator.locks.request("cap-savoir-data-write", write);
+    }
+
+    throw new Error(
+      "Verrouillage indisponible. Écriture refusée pour protéger les données."
+    );
+  }
+
+
+  let hasRenderedStudents = false;
+
+  return {
+  storageKey,
   editingId: null,
 
   getAll() {
-    try {
-      const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error("Erreur de lecture :", error);
-      return [];
+    return readStored().records;
+  },
+
+  showStorageError(error) {
+    const message = document.getElementById("student-message");
+    if (message) {
+      message.textContent =
+        `Lecture ou écriture impossible : ${error.message} ` +
+        (hasRenderedStudents
+          ? "Les données affichées proviennent du dernier chargement réussi et peuvent ne plus être à jour."
+          : "Aucune donnée n'a été déclarée vide.");
     }
   },
 
-  saveAll(students) {
-    localStorage.setItem(this.storageKey, JSON.stringify(students));
-  },
-
-  add(student) {
-    const students = this.getAll();
+  async add(student) {
+    const state = readStored();
+    const students = state.records;
 
     students.push({
       id: crypto.randomUUID(),
@@ -32,35 +145,54 @@ const StudentManager = {
       group: student.group,
       startDate: student.startDate,
       createdAt: new Date().toISOString(),
+      levelHistory: [{ level: student.level, effectiveFrom: student.startDate }],
+      billingHistoryVerified: true,
       archived: false,
-      archivedAt: null
+      archivedAt: null,
+      registrationExempted: Boolean(student.registrationExempted)
     });
 
-    this.saveAll(students);
+    await commit(students, state.raw);
   },
 
-  update(id, data) {
-    const students = this.getAll();
+  async update(id, data) {
+    const state = readStored();
+    const students = state.records;
     const index = students.findIndex(student => student.id === id);
 
     if (index === -1) return false;
+
+    const current = students[index];
+    const levelHistory = Array.isArray(current.levelHistory)
+      ? [...current.levelHistory]
+      : [{ level: current.level, effectiveFrom: current.startDate }];
+    const todayParts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Abidjan", year: "numeric", month: "2-digit", day: "2-digit"
+    }).formatToParts(new Date()).map(part => [part.type, part.value]));
+    const effectiveFrom = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+    if (data.level !== current.level && !levelHistory.some(entry => entry.effectiveFrom === effectiveFrom && entry.level === data.level)) {
+      levelHistory.push({ level: data.level, effectiveFrom });
+    }
 
     students[index] = {
       ...students[index],
       name: data.name.trim(),
       level: data.level,
+      levelHistory,
       parent: data.parent.trim(),
       phone: data.phone.trim(),
       group: data.group,
-      startDate: data.startDate
+      startDate: current.startDate,
+      registrationExempted: Boolean(current.registrationExempted)
     };
 
-    this.saveAll(students);
+    await commit(students, state.raw);
     return true;
   },
 
-  setArchived(id, archived) {
-    const students = this.getAll();
+  async setArchived(id, archived) {
+    const state = readStored();
+    const students = state.records;
     const student = students.find(item => item.id === id);
 
     if (!student) return;
@@ -70,7 +202,7 @@ const StudentManager = {
       ? new Date().toISOString()
       : null;
 
-    this.saveAll(students);
+    await commit(students, state.raw);
   },
 
   resetForm() {
@@ -78,8 +210,13 @@ const StudentManager = {
     const button = form?.querySelector('button[type="submit"]');
 
     if (form) form.reset();
+    if (form?.elements.startDate) form.elements.startDate.readOnly = false;
+    if (form?.elements.registrationExempted) form.elements.registrationExempted.disabled = false;
 
     this.editingId = null;
+
+    const formPanel = document.getElementById("student-form-panel");
+    if (formPanel) formPanel.open = false;
 
     if (button) {
       button.textContent = "Enregistrer l'élève";
@@ -92,19 +229,43 @@ const StudentManager = {
 
     if (!list || !count) return;
 
-    const students = this.getAll();
+    let students;
+    try {
+      students = this.getAll();
+    } catch (error) {
+      if (!hasRenderedStudents) {
+        list.textContent = "Données des élèves indisponibles.";
+        count.textContent = "Données indisponibles";
+      }
+      this.showStorageError(error);
+      return;
+    }
     const active = students.filter(s => !s.archived);
     const archived = students.filter(s => s.archived);
+    const query = (document.getElementById("student-search")?.value || "").trim().toLocaleLowerCase("fr");
+    const level = document.getElementById("student-filter-level")?.value || "";
+    const group = document.getElementById("student-filter-group")?.value || "";
+    const status = document.getElementById("student-filter-status")?.value || "active";
+    const matches = student => {
+      const searchable = [student.name, student.parent, student.phone, student.level, student.group]
+        .filter(Boolean).join(" ").toLocaleLowerCase("fr");
+      return (!query || searchable.includes(query)) && (!level || student.level === level) &&
+        (!group || student.group === group) &&
+        (status === "all" || (status === "archived" ? Boolean(student.archived) : !student.archived));
+    };
+    const visible = students.filter(matches);
 
-    count.textContent =
-      `${active.length} élève(s) actif(s) — ${archived.length} archivé(s)`;
+    count.textContent = `${active.length} actif(s) · ${archived.length} archivé(s) · affichage ${visible.length}/${students.length}`;
 
     list.replaceChildren();
 
-    if (students.length === 0) {
-      list.textContent = "Aucun élève enregistré.";
+    if (visible.length === 0) {
+      list.textContent = students.length ? "Aucun élève ne correspond à ces critères." : "Aucun élève enregistré.";
+      list.classList.add("empty-state");
+      hasRenderedStudents = true;
       return;
     }
+    list.classList.remove("empty-state");
 
     const createSection = (title, items, isArchived) => {
       const section = document.createElement("section");
@@ -133,6 +294,11 @@ name.dataset.id = student.id;
         details.textContent =
           `${student.level} • ${student.group} • Début : ${student.startDate}`;
 
+        const enrollment = document.createElement("p");
+        enrollment.textContent = student.registrationExempted
+          ? "Inscription : exonérée"
+          : "Inscription : 2 000 FCFA";
+
         const parent = document.createElement("p");
         parent.textContent =
           `Responsable : ${student.parent || "Non renseigné"}`;
@@ -142,6 +308,7 @@ name.dataset.id = student.id;
           `Téléphone : ${student.phone || "Non renseigné"}`;
 
         const status = document.createElement("p");
+        status.className = isArchived ? "student-status archived" : "student-status";
         status.textContent = isArchived
           ? "Statut : Archivé"
           : "Statut : Actif";
@@ -172,15 +339,16 @@ name.dataset.id = student.id;
           actions.appendChild(restoreButton);
         }
 
-        card.append(name, details, parent, phone, status, actions);
+        card.append(name, details, enrollment, parent, phone, status, actions);
         section.appendChild(card);
       });
 
       list.appendChild(section);
     };
 
-    createSection("Élèves actifs", active, false);
-    createSection("Élèves archivés", archived, true);
+    if (status !== "archived") createSection("Élèves actifs", visible.filter(student => !student.archived), false);
+    if (status !== "active") createSection("Élèves archivés", visible.filter(student => student.archived), true);
+    hasRenderedStudents = true;
   },
 showDetails(id) {
   const student = this.getAll().find(item => item.id === id);
@@ -194,24 +362,32 @@ showDetails(id) {
 
   const title = document.createElement("h2");
   title.textContent = "Fiche individuelle";
+  title.className = "dialog-title";
+  const closeTop = document.createElement("button");
+  closeTop.type = "button";
+  closeTop.className = "dialog-close";
+  closeTop.setAttribute("aria-label", "Fermer la fiche");
+  closeTop.textContent = "Fermer";
+  closeTop.addEventListener("click", () => dialog.close());
 
   const fields = [
     ["Nom complet", student.name],
     ["Niveau scolaire", student.level],
     ["Groupe", student.group],
     ["Date de début", student.startDate],
+    ["Frais d'inscription", student.registrationExempted ? "Exonérés" : "2 000 FCFA"],
     ["Parent / responsable", student.parent || "Non renseigné"],
     ["Téléphone", student.phone || "Non renseigné"],
     ["Statut", student.archived ? "Archivé" : "Actif"],
     [
       "Date de création",
       student.createdAt
-        ? new Date(student.createdAt).toLocaleDateString("fr-FR")
+        ? new Date(student.createdAt).toLocaleDateString("fr-FR", { timeZone: "Africa/Abidjan" })
         : "Non renseignée"
     ]
   ];
 
-  dialog.appendChild(title);
+  dialog.append(title, closeTop);
 
   fields.forEach(([label, value]) => {
     const line = document.createElement("p");
@@ -219,14 +395,66 @@ showDetails(id) {
     dialog.appendChild(line);
   });
 
-  const historyTitle = document.createElement("h3");
-  historyTitle.textContent = "Historique";
-  dialog.appendChild(historyTitle);
+  const levelTitle = document.createElement("h3");
+  levelTitle.textContent = "Historique des niveaux";
+  dialog.appendChild(levelTitle);
+  const levelHistory = Array.isArray(student.levelHistory) ? [...student.levelHistory].sort((a, b) => String(a.effectiveFrom || "").localeCompare(String(b.effectiveFrom || ""))) : [];
+  if (levelHistory.length) {
+    levelHistory.forEach(change => {
+      const line = document.createElement("p");
+      line.textContent = `${change.level || "Niveau non renseigné"} — à partir du ${change.effectiveFrom || "date non renseignée"}`;
+      dialog.appendChild(line);
+    });
+  } else {
+    const line = document.createElement("p");
+    line.textContent = "Aucun historique de changement de niveau enregistré.";
+    dialog.appendChild(line);
+  }
 
-  const historyMessage = document.createElement("p");
-  historyMessage.textContent =
-    "Les historiques de présence et de paiement seront ajoutés dans une prochaine version.";
-  dialog.appendChild(historyMessage);
+  const attendanceTitle = document.createElement("h3");
+  attendanceTitle.textContent = "Historique des présences";
+  dialog.appendChild(attendanceTitle);
+
+  const attendance = AttendanceManager.getAll();
+  const sessions = attendance.filter(record =>
+    (record.sessionStatus || "completed") === "completed" &&
+    (record.entries || []).some(entry => entry.studentId === student.id)
+  );
+  const presenceCounts = { present: 0, absent: 0, late: 0, excused: 0 };
+  sessions.forEach(record => record.entries.forEach(entry => {
+    if (presenceCounts[entry.status] !== undefined) presenceCounts[entry.status]++;
+  }));
+  const attendanceLine = document.createElement("p");
+  attendanceLine.textContent = sessions.length
+    ? `Séances réalisées : ${sessions.length} — présents ${presenceCounts.present}, absents ${presenceCounts.absent}, retards ${presenceCounts.late}, excusés ${presenceCounts.excused}.`
+    : "Présences : Non disponible (aucune séance réalisée enregistrée).";
+  dialog.appendChild(attendanceLine);
+  sessions.slice(-5).reverse().forEach(record => {
+    const entry = (record.entries || []).find(item => item.studentId === student.id);
+    if (!entry) return;
+    const line = document.createElement("p");
+    line.textContent = `${record.date} · ${record.group} · ${entry.status}${entry.reason ? ` · ${entry.reason}` : ""}`;
+    dialog.appendChild(line);
+  });
+
+  const ledger = OperationsManager.getAll();
+  const payments = ledger.payments.filter(item => item.studentId === student.id);
+  const refunds = ledger.refunds.filter(item => item.studentId === student.id);
+  const totalPaid = payments.reduce((sum, item) => sum + item.amount, 0);
+  const totalRefunded = refunds.reduce((sum, item) => sum + item.amount, 0);
+  const paymentTitle = document.createElement("h3");
+  paymentTitle.textContent = "Historique des paiements";
+  dialog.appendChild(paymentTitle);
+  const paymentLine = document.createElement("p");
+  paymentLine.textContent = payments.length
+    ? `Paiements enregistrés : ${totalPaid.toLocaleString("fr-FR")} FCFA · remboursements : ${totalRefunded.toLocaleString("fr-FR")} FCFA.`
+    : "Aucun paiement enregistré.";
+  dialog.appendChild(paymentLine);
+  [...payments].sort((a, b) => String(b.date).localeCompare(String(a.date))).forEach(payment => {
+    const line = document.createElement("p");
+    line.textContent = `${payment.date} · ${payment.amount.toLocaleString("fr-FR")} FCFA · ${payment.method || "moyen non renseigné"}${payment.reference ? ` · réf. ${payment.reference}` : ""}${payment.paperReceipt ? ` · reçu papier ${payment.paperReceipt}` : ""}`;
+    dialog.appendChild(line);
+  });
 
   const closeButton = document.createElement("button");
   closeButton.type = "button";
@@ -243,6 +471,8 @@ showDetails(id) {
     const student = this.getAll().find(item => item.id === id);
     if (!student || student.archived) return;
 
+    const panel = document.getElementById("student-form-panel");
+    if (panel) panel.open = true;
     const form = document.getElementById("student-form");
     if (!form) return;
 
@@ -252,6 +482,12 @@ showDetails(id) {
     form.elements.phone.value = student.phone;
     form.elements.group.value = student.group;
     form.elements.startDate.value = student.startDate;
+    form.elements.startDate.readOnly = true;
+    form.elements.registrationExempted.checked =
+      Boolean(student.registrationExempted);
+    form.elements.registrationExempted.disabled = true;
+    document.getElementById("student-name")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById("student-name")?.focus({ preventScroll: true });
 
     this.editingId = id;
 
@@ -263,13 +499,15 @@ showDetails(id) {
 
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   },
-exportBackup() {
+
+  exportBackup() {
   const backup = {
     application: "CAP SAVOIR MANAGER",
-    version: 2,
+    version: 4,
     exportedAt: new Date().toISOString(),
     students: this.getAll(),
-    attendance: AttendanceManager.getAll()
+    attendance: AttendanceManager.getAll(),
+    operations: OperationsManager.getAll()
   };
 
   const content = JSON.stringify(backup, null, 2);
@@ -280,6 +518,7 @@ exportBackup() {
     "application/json"
   );
 },
+
   exportCSV() {
     const students = this.getAll();
 
@@ -328,120 +567,104 @@ exportBackup() {
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try {
+      link.click();
+    } finally {
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
   },
 
- 
 async restoreBackup(file) {
   try {
-    const content = await file.text();
-    const backup = JSON.parse(content);
+    const backup = JSON.parse(await file.text());
+    const imported = OperationsManager.validateBackup(backup);
+    const current = OperationsManager.captureRestoreSnapshot();
 
-    if (
-      backup.application !== "CAP SAVOIR MANAGER" ||
-      !Array.isArray(backup.students)
-    ) {
-      throw new Error("Format de sauvegarde invalide.");
-    }
+    const preRestoreBackup = {
+      application: "CAP SAVOIR MANAGER",
+      version: 4,
+      exportedAt: new Date().toISOString(),
+      students: current.students,
+      attendance: current.attendance,
+      operations: current.operations
+    };
 
-    // Vérifier les fiches élèves
-    const validStudents = backup.students.every(student =>
-      student &&
-      typeof student.id === "string" &&
-      typeof student.name === "string" &&
-      typeof student.level === "string" &&
-      typeof student.parent === "string" &&
-      typeof student.phone === "string" &&
-      typeof student.group === "string" &&
-      typeof student.startDate === "string" &&
-      typeof student.archived === "boolean"
+    const preRestoreContent = JSON.stringify(preRestoreBackup, null, 2);
+    const checked = OperationsManager.validateBackup(
+      JSON.parse(preRestoreContent)
     );
 
-    const studentIds = backup.students.map(student => student.id);
-
     if (
-      !validStudents ||
-      new Set(studentIds).size !== studentIds.length
+      JSON.stringify(checked.students) !== JSON.stringify(current.students) ||
+      JSON.stringify(checked.attendance) !== JSON.stringify(current.attendance) ||
+      JSON.stringify(checked.operations) !== JSON.stringify(current.operations)
     ) {
-      throw new Error("Les données des élèves sont invalides.");
-    }
-
-    // Vérifier les présences si elles existent dans la sauvegarde
-    const hasAttendance = Array.isArray(backup.attendance);
-
-    if (backup.attendance !== undefined && !hasAttendance) {
-      throw new Error("L'historique des présences est invalide.");
-    }
-
-    if (hasAttendance) {
-      const validAttendance = backup.attendance.every(record =>
-        record &&
-        typeof record.id === "string" &&
-        typeof record.date === "string" &&
-        typeof record.group === "string" &&
-        Array.isArray(record.entries) &&
-        record.entries.every(entry =>
-          entry &&
-          typeof entry.studentId === "string" &&
-          typeof entry.studentName === "string" &&
-          typeof entry.status === "string" &&
-          typeof entry.reason === "string"
-        )
+      throw new Error(
+        "La sauvegarde préalable complète n'a pas passé la vérification."
       );
-
-      const attendanceIds = backup.attendance.map(record => record.id);
-
-      if (
-        !validAttendance ||
-        new Set(attendanceIds).size !== attendanceIds.length
-      ) {
-        throw new Error("Les données des présences sont invalides.");
-      }
     }
+
+    this.downloadFile(
+      preRestoreContent,
+      `cap-savoir-avant-restauration-${new Date().toISOString().slice(0, 10)}.json`,
+      "application/json"
+    );
+
+    const retained = confirm(
+      "La sauvegarde préalable complète (élèves, présences et opérations) " +
+      "a été préparée, vérifiée et son téléchargement a été déclenché. " +
+      "L'application ne peut pas vérifier que le fichier a été conservé " +
+      "sur votre appareil. Confirmez que vous l'avez retrouvé et conservé."
+    );
+
+    if (!retained) return;
 
     const confirmed = confirm(
-      `Cette sauvegarde contient ${backup.students.length} fiche(s) élève(s).\n` +
-      `${hasAttendance ? backup.attendance.length + " séance(s) de présence" : "Aucun historique de présence dans ce fichier"}.\n\n` +
-      "La restauration remplacera les fiches élèves actuelles.\n" +
-      (hasAttendance
-        ? "Elle remplacera également l'historique des présences actuel.\n\n"
-        : "L'historique des présences déjà présent sur cet appareil sera conservé.\n\n") +
-      "Avez-vous déjà téléchargé une sauvegarde de vos données actuelles ?"
+      `La sauvegarde contient ${imported.students.length} élève(s), ` +
+      `${imported.attendance.length} séance(s), ` +
+      `${imported.operations.payments.length} paiement(s), ` +
+      `${imported.operations.expenses.length} dépense(s) et ` +
+      `${imported.operations.prospects.length} prospect(s).\n\n` +
+      "La restauration remplacera les trois registres locaux. Confirmez-vous ?"
     );
 
     if (!confirmed) return;
 
-    // Restaurer les élèves
-    this.saveAll(backup.students);
-
-    // Restaurer les présences uniquement si elles sont présentes
-    if (hasAttendance) {
-      AttendanceManager.saveAll(backup.attendance);
-    }
+    await OperationsManager.restoreAll(backup, current.raw);
 
     this.resetForm();
     this.render();
+    AttendanceManager.renderHistory();
+    OperationsManager.refresh();
 
-    if (hasAttendance) {
-      AttendanceManager.renderHistory();
+    const message = document.getElementById("student-message");
+
+    if (message) {
+      message.className = "";
+      message.textContent =
+        "Restauration complète vérifiée : élèves, présences et opérations.";
     }
-
-    document.getElementById("student-message").textContent =
-      hasAttendance
-        ? "Élèves et historique des présences restaurés avec succès."
-        : "Élèves restaurés. L'historique des présences existant a été conservé.";
-
   } catch (error) {
     console.error("Erreur de restauration :", error);
 
-    document.getElementById("student-message").textContent =
-      "Restauration impossible : fichier invalide ou illisible.";
+    const message = document.getElementById("student-message");
+    if (!message) return;
+
+    message.className = "message-error";
+
+    if (
+      error.code === "RESTORE_PARTIAL" ||
+      error.code === "RESTORE_ROLLED_BACK"
+    ) {
+      message.textContent = error.message;
+    } else if (error.code && error.code.startsWith("STORAGE_")) {
+      this.showStorageError(error);
+    } else {
+      message.textContent = `Restauration impossible : ${error.message}`;
+    }
   }
 },
-
   init() {
     const form = document.getElementById("student-form");
     const message = document.getElementById("student-message");
@@ -451,11 +674,19 @@ const csvButton = document.getElementById("export-csv");
 const restoreInput = document.getElementById("restore-backup");
 
 exportButton?.addEventListener("click", () => {
-  this.exportBackup();
+  try {
+    this.exportBackup();
+  } catch (error) {
+    this.showStorageError(error);
+  }
 });
 
 csvButton?.addEventListener("click", () => {
-  this.exportCSV();
+  try {
+    this.exportCSV();
+  } catch (error) {
+    this.showStorageError(error);
+  }
 });
 
 restoreInput?.addEventListener("change", async () => {
@@ -469,9 +700,14 @@ restoreInput?.addEventListener("change", async () => {
 });
     if (!form || !list) return;
 
+    document.getElementById("student-search")?.addEventListener("input", () => this.render());
+    ["student-filter-level", "student-filter-group", "student-filter-status"].forEach(id => {
+      document.getElementById(id)?.addEventListener("change", () => this.render());
+    });
+
     this.render();
 
-    form.addEventListener("submit", event => {
+    form.addEventListener("submit", async event => {
       event.preventDefault();
 
       if (!form.reportValidity()) return;
@@ -484,12 +720,13 @@ restoreInput?.addEventListener("change", async () => {
         parent: formData.get("parent") || "",
         phone: formData.get("phone") || "",
         group: formData.get("group"),
-        startDate: formData.get("startDate")
+        startDate: formData.get("startDate"),
+        registrationExempted: formData.get("registrationExempted") === "on"
       };
 
       try {
         if (this.editingId) {
-          const updated = this.update(this.editingId, data);
+          const updated = await this.update(this.editingId, data);
 
           if (!updated) {
             message.textContent = "Fiche introuvable.";
@@ -498,7 +735,7 @@ restoreInput?.addEventListener("change", async () => {
 
           message.textContent = "Fiche modifiée avec succès.";
         } else {
-          this.add(data);
+          await this.add(data);
           message.textContent = "Élève enregistré avec succès.";
         }
 
@@ -506,49 +743,50 @@ restoreInput?.addEventListener("change", async () => {
         this.render();
       } catch (error) {
         console.error("Erreur :", error);
-        message.textContent =
-          "Enregistrement impossible. Vérifiez l'espace disponible.";
+        this.showStorageError(error);
       }
     });
 
-    list.addEventListener("click", event => {
+    list.addEventListener("click", async event => {
       const button = event.target.closest("button[data-action]");
       if (!button) return;
 
-      const id = button.dataset.id;
-      const action = button.dataset.action;
-      const student = this.getAll().find(item => item.id === id);
+      try {
+        const id = button.dataset.id;
+        const action = button.dataset.action;
+        const student = this.getAll().find(item => item.id === id);
 
-      if (!student) return;
-if (action === "view") {
-  this.showDetails(id);
-}
-      if (action === "edit") {
-        this.edit(id);
-      }
+        if (!student) return;
+        if (action === "view") {
+          this.showDetails(id);
+        }
+        if (action === "edit") {
+          this.edit(id);
+        }
 
-      if (action === "archive") {
-        const confirmed = confirm(
-          `Archiver la fiche de ${student.name} ?`
-        );
+        if (action === "archive") {
+          const confirmed = confirm(
+            `Archiver la fiche de ${student.name} ?`
+          );
 
-        if (confirmed) {
-          this.setArchived(id, true);
-          this.resetForm();
-          message.textContent = "Élève archivé. Sa fiche est conservée.";
+          if (confirmed) {
+            await this.setArchived(id, true);
+            message.textContent = "Élève archivé. Sa fiche est conservée.";
+            this.resetForm();
+            this.render();
+          }
+        }
+
+        if (action === "restore") {
+          await this.setArchived(id, false);
+          message.textContent = "Élève restauré avec succès.";
           this.render();
         }
-      }
-
-      if (action === "restore") {
-        this.setArchived(id, false);
-        message.textContent = "Élève restauré avec succès.";
-        this.render();
+      } catch (error) {
+        console.error("Erreur de lecture ou d'enregistrement :", error);
+        this.showStorageError(error);
       }
     });
   }
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  StudentManager.init();
-});
+  };
+})();
