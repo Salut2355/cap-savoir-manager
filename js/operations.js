@@ -162,7 +162,7 @@ const OperationsManager = (() => {
           <label>Nom<input name="name" required maxlength="100"></label>
           <label>Téléphone<input name="phone" type="tel" maxlength="25"></label>
           <label>Niveau souhaité<select name="level" required><option value="">Choisir</option><option>CP1</option><option>CP2</option><option>CE1</option><option>CE2</option><option>CM1</option><option>CM2</option><option>6e</option><option>5e</option><option>4e</option></select></label>
-          <label>Groupe souhaité<select name="group" required><option value="">Choisir</option><option value="G1">G1 — dimanche, mardi, jeudi · 19 h–21 h</option><option value="G2">G2 — lundi, mercredi, vendredi · 19 h–21 h 30</option></select></label>
+          <label>Groupe souhait?<select name="group" required><option value="">Choisir</option><option value="G1">G1 ? mercredi, samedi, dimanche ? 16 h?18 h</option><option value="G2">G2 ? lundi, mercredi, vendredi ? 19 h?21 h</option><option value="G3">G3 ? samedi ? 19 h?21 h</option></select></label>
           <label>Suivi<select name="status"><option>À contacter</option><option>Contacté</option><option>Inscrit</option><option>Non retenu</option></select></label>
           <button type="submit">Enregistrer le prospect</button>
         </form>

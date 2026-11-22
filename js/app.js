@@ -146,8 +146,10 @@ const App = {
 
   renderDashboardGroups(students, container) {
     const definitions = [
-      { keys: ["G1", "Groupe 1"], name: "G1", schedule: "Dimanche, mardi et jeudi · 19 h–21 h" },
-      { keys: ["G2", "Groupe 2"], name: "G2", schedule: "Lundi, mercredi et vendredi · 19 h–21 h 30" }
+      { keys: ["G1", "Groupe 1"], name: "G1", schedule: "Mercredi, samedi et dimanche ? 16 h?18 h" },
+      { keys: ["G2", "Groupe 2"], name: "G2", schedule: "Lundi, mercredi et vendredi ? 19 h?21 h" },
+
+      { keys: ["G3", "Groupe 3"], name: "G3", schedule: "Samedi ? 19 h?21 h" }
     ];
     container.replaceChildren();
     definitions.forEach(group => {
@@ -242,8 +244,10 @@ const App = {
     try {
       const students = StudentManager.getAll().filter(student => !student.archived);
       const definitions = [
-        { keys: ["G1", "Groupe 1"], name: "G1", schedule: "Dimanche, mardi et jeudi", hours: "19 h à 21 h" },
-        { keys: ["G2", "Groupe 2"], name: "G2", schedule: "Lundi, mercredi et vendredi", hours: "19 h à 21 h 30" }
+        { keys: ["G1", "Groupe 1"], name: "G1", schedule: "Mercredi, samedi et dimanche", hours: "16 h ? 18 h" },
+        { keys: ["G2", "Groupe 2"], name: "G2", schedule: "Lundi, mercredi et vendredi", hours: "19 h ? 21 h" },
+
+        { keys: ["G3", "Groupe 3"], name: "G3", schedule: "Samedi", hours: "19 h ? 21 h" }
       ];
       const cards = definitions.map(group => {
         const members = students.filter(student => group.keys.includes(student.group));

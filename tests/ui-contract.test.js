@@ -43,6 +43,8 @@ test("finance UI provides filtered expense and operation records plus a print re
 test("the group overview is derived from existing student records without storing new state", () => {
   assert.match(app, /renderGroups\(\)\s*\{/);
   assert.match(app, /StudentManager\.getAll\(\)/);
-  assert.match(app, /Dimanche, mardi et jeudi/);
+  assert.match(app, /Mercredi, samedi et dimanche/);
   assert.match(app, /Lundi, mercredi et vendredi/);
+  assert.match(app, /G3/);
+  assert.match(operations, /value="G3"/);
 });

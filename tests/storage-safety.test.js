@@ -240,10 +240,19 @@ test("student tariff changes are date-stamped and enrollment terms stay anchored
 
 test("attendance schedule follows the configured group weekdays", () => {
   const harness = createHarness();
+
   assert.equal(harness.attendance.isScheduledGroupDay("G1", "2026-11-01"), true);
+  assert.equal(harness.attendance.isScheduledGroupDay("G1", "2026-11-04"), true);
+  assert.equal(harness.attendance.isScheduledGroupDay("G1", "2026-11-07"), true);
   assert.equal(harness.attendance.isScheduledGroupDay("G1", "2026-11-02"), false);
+
   assert.equal(harness.attendance.isScheduledGroupDay("G2", "2026-11-02"), true);
+  assert.equal(harness.attendance.isScheduledGroupDay("G2", "2026-11-04"), true);
   assert.equal(harness.attendance.isScheduledGroupDay("Groupe 2", "2026-11-03"), false);
+  assert.equal(harness.attendance.isScheduledGroupDay("G2", "2026-11-07"), false);
+
+  assert.equal(harness.attendance.isScheduledGroupDay("G3", "2026-11-07"), true);
+  assert.equal(harness.attendance.isScheduledGroupDay("Groupe 3", "2026-11-06"), false);
 });
 
 test("JSON backup is created only after every required store is readable", () => {

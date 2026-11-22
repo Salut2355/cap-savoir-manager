@@ -155,7 +155,13 @@ const AttendanceManager = (() => {
     const day = new Date(`${dateValue}T12:00:00`).getDay();
     const isG1 = ["G1", "Groupe 1"].includes(group);
     const isG2 = ["G2", "Groupe 2"].includes(group);
-    return isG1 ? [0, 2, 4].includes(day) : isG2 && [1, 3, 5].includes(day);
+    const isG3 = ["G3", "Groupe 3"].includes(group);
+
+    return isG1 ? [0, 3, 6].includes(day)
+
+      : isG2 ? [1, 3, 5].includes(day)
+
+      : isG3 && [6].includes(day);
   },
 
   init() {
